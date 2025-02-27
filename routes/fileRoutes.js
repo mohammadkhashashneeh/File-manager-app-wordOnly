@@ -3,6 +3,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const mammoth = require('mammoth');
 
+const { Document, Packer, Paragraph, TextRun } = require('docx');
+
+
 const router = express.Router();
 
 // Helper function to get absolute file path (prevents path traversal attacks)
@@ -50,18 +53,45 @@ router.get('/read', async (req, res) => {
 router.post('/append', async (req, res) => {
   const { fileName, content } = req.body;
 
-  // Check if the file is a Word file
   if (!fileName || !isWordFile(fileName)) {
     return res.status(400).json({ error: 'Only Word (.docx) files are allowed' });
   }
 
+  const filePath = getFilePath(fileName);
+
   try {
-    await fs.appendFile(getFilePath(fileName), content, 'utf8');
+    let doc;
+    
+    // Check if the file exists
+    try {
+      const existingData = await fs.readFile(filePath);
+      doc = await Document.fromBuffer(existingData);
+    } catch (err) {
+      // If file doesn't exist, create a new one
+      doc = new Document();
+    }
+
+    // Append new content
+    doc.addSection({
+      children: [
+        new Paragraph({
+          children: [new TextRun(content)],
+        }),
+      ],
+    });
+
+    // Save the updated document
+    const buffer = await Packer.toBuffer(doc);
+    await fs.writeFile(filePath, buffer);
+
     res.json({ message: 'Content appended successfully' });
+
   } catch (err) {
+    console.error("Error appending to Word file:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 router.put('/rename', async (req, res) => {
   const { oldName, newName } = req.body;
@@ -90,31 +120,37 @@ router.put('/rename', async (req, res) => {
 router.post('/write', async (req, res) => {
   const { fileName, content } = req.body;
 
-  // Check if the file is a Word file
   if (!fileName || !isWordFile(fileName)) {
     return res.status(400).json({ error: 'Only Word (.docx) files are allowed' });
   }
 
-  try {
-    await fs.writeFile(getFilePath(fileName), content, 'utf8');
-    res.json({ message: 'File written successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.delete('/delete', async (req, res) => {
-  const fileName = req.query.fileName;
-
-  // Check if the file is a Word file
-  if (!fileName || !isWordFile(fileName)) {
-    return res.status(400).json({ error: 'Only Word (.docx) files are allowed' });
-  }
+  const filePath = getFilePath(fileName);
 
   try {
-    await fs.unlink(getFilePath(fileName));
-    res.json({ message: 'File deleted successfully' });
+    // Create a new Word document
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [new TextRun(content)],
+            }),
+          ],
+        },
+      ],
+    });
+
+    // Generate the document buffer
+    const buffer = await Packer.toBuffer(doc);
+
+    // Write the buffer to the file
+    await fs.writeFile(filePath, buffer);
+
+    res.json({ message: 'File written successfully as a valid Word document' });
+
   } catch (err) {
+    console.error("Error writing Word file:", err);
     res.status(500).json({ error: err.message });
   }
 });
