@@ -8,12 +8,16 @@ function isWordFile(fileName) {
 // Read file
 async function readFile() {
   const fileName = document.getElementById('readFileName').value;
-
+  if (!fileName) {
+    alert('File name is required');
+    return;
+  }
   if (!isWordFile(fileName)) {
     alert('Only Word (.docx) files are allowed');
     return;
   }
-
+  
+ 
   const response = await fetch(`${apiUrl}/read?fileName=${fileName}`);
   const data = await response.json();
   document.getElementById('readContent').textContent = data.content || data.error;
@@ -23,6 +27,10 @@ async function readFile() {
 async function writeFile() {
   const fileName = document.getElementById('writeFileName').value;
   const content = document.getElementById('writeContent').value;
+  if (!fileName) {
+    alert('File name is required');
+    return;
+  }
 
   if (!isWordFile(fileName)) {
     alert('Only Word (.docx) files are allowed');
@@ -40,6 +48,10 @@ async function writeFile() {
 async function appendFile() {
   const fileName = document.getElementById('appendFileName').value;
   const content = document.getElementById('appendContent').value;
+  if (!fileName) {
+    alert('File name is required');
+    return;
+  }
 
   if (!isWordFile(fileName)) {
     alert('Only Word (.docx) files are allowed');
@@ -56,6 +68,10 @@ async function appendFile() {
 // Delete file
 async function deleteFile() {
   const fileName = document.getElementById('deleteFileName').value;
+  if (!fileName) {
+    alert('File name is required');
+    return;
+  }
 
   if (!isWordFile(fileName)) {
     alert('Only Word (.docx) files are allowed');
@@ -69,6 +85,13 @@ async function deleteFile() {
 async function renameFile() {
   const oldName = document.getElementById('oldFileName').value;
   const newName = document.getElementById('newFileName').value;
+  const fileName = document.getElementById('appendFileName').value;
+
+  if (!fileName) {
+    alert('File name is required');
+    return;
+  }
+
 
   if (!isWordFile(oldName) || !isWordFile(newName)) {
     alert('Only Word (.docx) files are allowed');
